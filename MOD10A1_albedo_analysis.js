@@ -932,6 +932,7 @@ Map.add(mainPanel);
 Map.add(qaPanel);
 
 // Initialisation de la carte
+Map.setOptions('SATELLITE'); // Set satellite as default basemap
 Map.centerObject(glacier_geometry, 12);
 Map.addLayer(glacier_mask.selfMask(), {palette: ['orange'], opacity: 0.5}, 'Saskatchewan Glacier Mask');
 
