@@ -70,10 +70,10 @@ var SUMMER_START_MONTH = 6;  // Juin (extended melt season)
 var SUMMER_END_MONTH = 9;    // Septembre
 var USE_PEAK_MELT_ONLY = false; // Si false, utilise juin-septembre au lieu de juillet-septembre
 
-// Class names for glacier fraction categories
-var FRACTION_CLASS_NAMES = ['border', 'mixed_low', 'mixed_high', 'mostly_ice', 'pure_ice'];
-var ANNUAL_CLASS_NAMES = ['border_high_snow', 'mixed_low_high_snow', 'mixed_high_high_snow', 
-                          'mostly_ice_high_snow', 'pure_ice_high_snow'];
+// Class names for glacier fraction categories with actual percentage ranges
+var FRACTION_CLASS_NAMES = ['glacier_0_25pct', 'glacier_25_50pct', 'glacier_50_75pct', 'glacier_75_90pct', 'glacier_90_100pct'];
+var ANNUAL_CLASS_NAMES = ['glacier_0_25pct_high_snow', 'glacier_25_50pct_high_snow', 'glacier_50_75pct_high_snow', 
+                          'glacier_75_90pct_high_snow', 'glacier_90_100pct_high_snow'];
 
 // 2. Charger l'asset du glacier Saskatchewan
 // ⚠️ LIMITATION SCIENTIFIQUE IMPORTANTE :
@@ -142,11 +142,11 @@ function padBinary(num, length) {
 // 5. Fonction optimisée pour créer masques de fraction (version simplifiée fiable)
 function createFractionMasks(fractionImage, thresholds) {
   var masks = {};
-  masks['border'] = fractionImage.gt(0).and(fractionImage.lt(thresholds[0]));
-  masks['mixed_low'] = fractionImage.gte(thresholds[0]).and(fractionImage.lt(thresholds[1]));
-  masks['mixed_high'] = fractionImage.gte(thresholds[1]).and(fractionImage.lt(thresholds[2]));
-  masks['mostly_ice'] = fractionImage.gte(thresholds[2]).and(fractionImage.lt(thresholds[3]));
-  masks['pure_ice'] = fractionImage.gte(thresholds[3]);
+  masks['glacier_0_25pct'] = fractionImage.gt(0).and(fractionImage.lt(thresholds[0]));
+  masks['glacier_25_50pct'] = fractionImage.gte(thresholds[0]).and(fractionImage.lt(thresholds[1]));
+  masks['glacier_50_75pct'] = fractionImage.gte(thresholds[1]).and(fractionImage.lt(thresholds[2]));
+  masks['glacier_75_90pct'] = fractionImage.gte(thresholds[2]).and(fractionImage.lt(thresholds[3]));
+  masks['glacier_90_100pct'] = fractionImage.gte(thresholds[3]);
   return masks;
 }
 
@@ -293,11 +293,11 @@ function calculateAnnualAlbedoHighSnowCoverOptimized(year) {
     
     // Appliquer les masques de fraction à l'albédo
     var masked_albedos = [
-      albedo_scaled.updateMask(masks.border).rename('border_high_snow'),
-      albedo_scaled.updateMask(masks.mixed_low).rename('mixed_low_high_snow'),
-      albedo_scaled.updateMask(masks.mixed_high).rename('mixed_high_high_snow'),
-      albedo_scaled.updateMask(masks.mostly_ice).rename('mostly_ice_high_snow'),
-      albedo_scaled.updateMask(masks.pure_ice).rename('pure_ice_high_snow')
+      albedo_scaled.updateMask(masks.glacier_0_25pct).rename('glacier_0_25pct_high_snow'),
+      albedo_scaled.updateMask(masks.glacier_25_50pct).rename('glacier_25_50pct_high_snow'),
+      albedo_scaled.updateMask(masks.glacier_50_75pct).rename('glacier_50_75pct_high_snow'),
+      albedo_scaled.updateMask(masks.glacier_75_90pct).rename('glacier_75_90pct_high_snow'),
+      albedo_scaled.updateMask(masks.glacier_90_100pct).rename('glacier_90_100pct_high_snow')
     ];
     
     // Ajouter une bande pour compter les pixels avec haute couverture de neige
