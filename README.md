@@ -39,7 +39,7 @@ Data filtering employs a multi-stage quality control framework:
 **Stage 3: Spatial-Temporal Constraints**
 - Minimum glacier fraction coverage thresholds (default: 75%)
 - Temporal aggregation reliability minimums (≥10 valid pixels)
-- Seasonal analysis windows (default: July-September)
+- Seasonal analysis windows (default: June-September)
 
 ### Statistical Analysis Methods
 
@@ -63,7 +63,7 @@ Temporal persistence analysis employs autocorrelation functions to quantify seri
 |-----------|---------------|-------------|-------|
 | NDSI_threshold | 0 | Minimum NDSI for snow classification | Index (0-100) |
 | glacier_fraction | 75 | Minimum glacier coverage requirement | Percentage |
-| season_start | 182 | Analysis period start (July 1) | Day of year |
+| season_start | 152 | Analysis period start (June 1) | Day of year |
 | season_end | 273 | Analysis period end (September 30) | Day of year |
 | quality_threshold | 1 | Maximum acceptable quality flag | Categorical |
 
