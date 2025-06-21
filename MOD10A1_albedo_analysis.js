@@ -34,7 +34,7 @@
 // │   • 🏔️ Glacier Fraction: ≥75% (pure glacier focus)                                │
 // │   • ✅ Quality Level: Good+ (0-1, excludes poor quality)                           │
 // │   • ☁️ Cloud Detection: v6.1 enabled (excludes cloudy pixels)                      │
-// │   • 🌞 Season: July-September (peak melt period)                                   │
+// │   • 🌞 Season: June-September (extended melt period)                              │
 // │                                                                                        │
 // │ 📋 EXPORTS GENERATED:                                                                 │
 // │   • 📅 Annual statistics by glacier fraction class (2010-2024)                     │
@@ -66,9 +66,9 @@ var GLACIER_FRACTION_THRESHOLD = 75; // Seuil minimal de fraction glacier dans l
 var MIN_PIXEL_THRESHOLD = 10; // Nombre minimum de pixels requis pour fiabilité statistique
 var FRACTION_THRESHOLDS = [0.25, 0.50, 0.75, 0.90]; // Seuils de fraction glacier pour classes
 var STUDY_YEARS = ee.List([2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]);
-var SUMMER_START_MONTH = 7;  // Juillet (peak melt season)
+var SUMMER_START_MONTH = 6;  // Juin (extended melt season)
 var SUMMER_END_MONTH = 9;    // Septembre
-var USE_PEAK_MELT_ONLY = true; // Si true, utilise juillet-septembre au lieu de juin-septembre
+var USE_PEAK_MELT_ONLY = false; // Si false, utilise juin-septembre au lieu de juillet-septembre
 
 // Class names for glacier fraction categories
 var FRACTION_CLASS_NAMES = ['border', 'mixed_low', 'mixed_high', 'mostly_ice', 'pure_ice'];
