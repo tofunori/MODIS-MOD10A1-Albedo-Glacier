@@ -1238,9 +1238,9 @@ print('╔═══════════════════════�
 print('║                    DEEP STATISTICAL ANALYSIS - GLACIER ALBEDO RESEARCH                 ║');
 print('╚════════════════════════════════════════════════════════════════════════════════════════╝');
 
-// Extract data arrays for analysis
-var pureIceData = annual_albedo_high_snow.filter(ee.Filter.neq('pure_ice_high_snow_mean', null));
-var dataArrays = pureIceData.aggregate_array('year').zip(pureIceData.aggregate_array('pure_ice_high_snow_mean'));
+// Extract data arrays for analysis - using correct column name for highest glacier fraction
+var pureIceData = annual_albedo_high_snow.filter(ee.Filter.neq('glacier_90_100pct_high_snow_mean', null));
+var dataArrays = pureIceData.aggregate_array('year').zip(pureIceData.aggregate_array('glacier_90_100pct_high_snow_mean'));
 
 dataArrays.evaluate(function(arrays) {
   if (!arrays || arrays.length < 5) {
@@ -1412,10 +1412,10 @@ dataArrays.evaluate(function(arrays) {
 });
 
 // 2. Annual Trend Visualization - Core scientific validation
-var trendChart = ui.Chart.feature.byFeature(annual_albedo_high_snow, 'year', 'pure_ice_high_snow_mean')
+var trendChart = ui.Chart.feature.byFeature(annual_albedo_high_snow, 'year', 'glacier_90_100pct_high_snow_mean')
   .setChartType('LineChart')
   .setOptions({
-    title: 'Pure Ice Albedo Trend (>90% glacier fraction)',
+    title: 'Pure Ice Albedo Trend (90-100% glacier fraction)',
     hAxis: {title: 'Year'},
     vAxis: {title: 'Mean Albedo', viewWindow: {min: 0.2, max: 0.9}},
     trendlines: {0: {type: 'linear', color: 'red', opacity: 0.8}},
