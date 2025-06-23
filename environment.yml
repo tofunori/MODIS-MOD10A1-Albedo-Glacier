@@ -1,0 +1,69 @@
+name: modis-albedo-analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Core Python
+  - python=3.10
+  - pip
+  
+  # Geospatial and Earth Engine
+  - earthengine-api
+  - geemap
+  - geopandas
+  - rasterio
+  - fiona
+  - shapely
+  - pyproj
+  - cartopy
+  
+  # Interactive widgets and Jupyter
+  - ipywidgets
+  - jupyterlab
+  - jupyter
+  - notebook
+  - ipykernel
+  - voila  # For deploying notebooks as web apps
+  
+  # Scientific computing and statistics
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - xarray
+  - netcdf4
+  
+  # Visualization
+  - matplotlib
+  - seaborn
+  - plotly
+  - bokeh
+  - altair
+  - folium
+  
+  # Additional utilities
+  - requests
+  - tqdm
+  - joblib
+  - dask
+  - numba
+  - bottleneck
+  - xlsxwriter  # For Excel export
+  
+  # Development and debugging
+  - black
+  - flake8
+  - pytest
+  
+  # Pip-only packages (not available in conda-forge)
+  - pip:
+    - pymannkendall  # Mann-Kendall trend analysis
+    - earthengine-api --upgrade  # Latest EE version
+    - ipyleaflet  # Interactive maps for Jupyter
+    - bqplot  # Interactive plotting
+    - keplergl  # Advanced geospatial visualization
+    - pycpt  # Change point detection
+    - ruptures  # Advanced change point detection
+    - arch  # ARCH/GARCH models for time series
+    - pyflux  # Bayesian time series analysis
