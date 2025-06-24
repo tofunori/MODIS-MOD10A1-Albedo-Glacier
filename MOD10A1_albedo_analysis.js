@@ -626,13 +626,13 @@ var dailyAlbedoHighSnow = dailyCollection.map(analyzeDailyAlbedoHighSnowCoverOpt
 
 print('Number of days analyzed:', dailyAlbedoHighSnow.size());
 
-// 11. Calculer les données pixel-level (échantillon pour test)
-print('Computing pixel-level data (sample for testing)...');
-// Limiter à quelques dates pour test initial - éviter timeout
-var sampleDates = dailyCollection.limit(10); // 10 premières dates pour test
-var pixelLevelData = sampleDates.map(analyzePixelLevelData).flatten();
+// 11. Calculer les données pixel-level (dataset complet 2010-2024)
+print('Computing pixel-level data for full dataset...');
+// ⚠️ ATTENTION: Processing complet de toutes les dates (2010-2024)
+// Cela peut générer un fichier très volumineux et prendre du temps
+var pixelLevelData = dailyCollection.map(analyzePixelLevelData).flatten();
 
-print('Number of pixel records (sample):', pixelLevelData.size());
+print('Number of pixel records (full dataset):', pixelLevelData.size());
 
 // ┌────────────────────────────────────────────────────────────────────────────────────────┐
 // │ SECTION 7 : INTERFACE INTERACTIVE OPTIMISÉE                                           │
@@ -1256,12 +1256,12 @@ Export.table.toDrive({
   fileFormat: 'CSV'
 });
 
-// 14. Export des données pixel-level (échantillon test)
+// 14. Export des données pixel-level (dataset complet 2010-2024)
 Export.table.toDrive({
   collection: pixelLevelData,
-  description: 'Saskatchewan_Albedo_Pixel_Level_Sample_Test',
+  description: 'Saskatchewan_Albedo_Pixel_Level_Full_Dataset_2010_2024',
   folder: 'GEE_exports',
-  fileNamePrefix: 'MOD10A1_albedo_pixel_level_sample_test',
+  fileNamePrefix: 'MOD10A1_albedo_pixel_level_full_2010_2024',
   fileFormat: 'CSV'
 });
 
@@ -1308,8 +1308,12 @@ print('   • Filter by passes_standard_qa=1 for research-grade data');
 print('   • Use individual flags for custom quality filtering');
 print('   • glacier_class helps stratify analysis by ice coverage');
 print('');
-print('🔧 FOR FULL DATASET: Modify sampleDates = dailyCollection (remove .limit(10))');
-print('   WARNING: Full dataset ~5M rows - ensure adequate compute resources');
+print('⚠️ FULL DATASET EXPORT - IMPORTANT NOTES:');
+print('   • Processing ALL observation dates from 2010-2024 (15 years)');
+print('   • Expected file size: ~5-10 million rows (very large CSV)');
+print('   • Processing time: 30-60 minutes depending on GEE load');
+print('   • Ensure adequate storage space before export');
+print('   • Consider processing subsets if file becomes too large');
 print('');
 print('═══════════════════════════════════════════════════════════════════════════════════════');
 
