@@ -39,6 +39,7 @@
 // │ 📋 EXPORTS GENERATED:                                                                 │
 // │   • 📅 Annual statistics by glacier fraction class (2010-2024)                     │
 // │   • 📈 Daily albedo time series with comprehensive metadata                         │
+// │   • 🔬 Pixel-level data with individual QA flags (NEW!)                            │
 // │   • 🐍 Quality-controlled data ready for Python analysis pipeline                  │
 // │                                                                                        │
 // │ 🔍 QUALITY CONTROL:                                                                   │
@@ -463,6 +464,114 @@ function analyzeDailyAlbedoHighSnowCoverOptimized(img) {
 }
 
 // ┌────────────────────────────────────────────────────────────────────────────────────────┐
+// │ SECTION 5B : ANALYSE PIXEL-LEVEL POUR EXPORT DÉTAILLÉ                                │
+// └────────────────────────────────────────────────────────────────────────────────────────┘
+
+// 7b. Fonction pour analyser les données au niveau pixel individuel
+function analyzePixelLevelData(img) {
+  var date = img.date();
+  var snow_cover = img.select('NDSI_Snow_Cover');
+  var snow_albedo = img.select('Snow_Albedo_Daily_Tile');
+  var quality = img.select('NDSI_Snow_Cover_Basic_QA');
+  var algorithm_flags = img.select('NDSI_Snow_Cover_Algorithm_Flags_QA');
+  
+  // Créer une grille de coordonnées pour extraction pixel
+  var coords = ee.Image.pixelLonLat().select(['longitude', 'latitude']);
+  
+  // Masque pour limiter aux pixels glacier seulement
+  var glacier_mask_sample = STATIC_GLACIER_FRACTION.gt(0);
+  
+  // Combiner toutes les bandes nécessaires
+  var combined_image = ee.Image.cat([
+    coords,
+    snow_cover.rename('ndsi_snow_cover'),
+    snow_albedo.rename('snow_albedo_raw'),
+    snow_albedo.divide(100).rename('snow_albedo_scaled'),
+    STATIC_GLACIER_FRACTION.multiply(100).rename('glacier_fraction_pct'),
+    quality.rename('basic_qa'),
+    algorithm_flags.rename('algorithm_flags')
+  ]).updateMask(glacier_mask_sample);
+  
+  // Décoder les flags d'algorithme en colonnes individuelles
+  var flag_bits = ee.Image.cat([
+    algorithm_flags.bitwiseAnd(1).rename('flag_inland_water'),
+    algorithm_flags.bitwiseAnd(2).divide(2).rename('flag_visible_fail'),
+    algorithm_flags.bitwiseAnd(4).divide(4).rename('flag_ndsi_fail'),
+    algorithm_flags.bitwiseAnd(8).divide(8).rename('flag_temp_height_fail'),
+    algorithm_flags.bitwiseAnd(16).divide(16).rename('flag_swir_anomaly'),
+    algorithm_flags.bitwiseAnd(32).divide(32).rename('flag_probably_cloudy'),
+    algorithm_flags.bitwiseAnd(64).divide(64).rename('flag_probably_clear'),
+    algorithm_flags.bitwiseAnd(128).divide(128).rename('flag_high_solar_zenith')
+  ]);
+  
+  // Ajouter le test QA standard
+  var passes_qa = createStandardQualityMask(img).rename('passes_standard_qa');
+  
+  // Déterminer la classe de fraction glacier
+  var glacier_class = ee.Image(0)
+    .where(STATIC_GLACIER_FRACTION.gte(0).and(STATIC_GLACIER_FRACTION.lt(0.25)), 1)  // 0-25%
+    .where(STATIC_GLACIER_FRACTION.gte(0.25).and(STATIC_GLACIER_FRACTION.lt(0.50)), 2) // 25-50%
+    .where(STATIC_GLACIER_FRACTION.gte(0.50).and(STATIC_GLACIER_FRACTION.lt(0.75)), 3) // 50-75%
+    .where(STATIC_GLACIER_FRACTION.gte(0.75).and(STATIC_GLACIER_FRACTION.lt(0.90)), 4) // 75-90%
+    .where(STATIC_GLACIER_FRACTION.gte(0.90), 5) // 90-100%
+    .rename('glacier_class_code');
+  
+  // Image finale avec toutes les bandes
+  var final_image = combined_image.addBands([flag_bits, passes_qa, glacier_class_code]);
+  
+  // Convertir en vecteurs pour export
+  var pixel_vectors = final_image.sample({
+    region: glacier_geometry,
+    scale: 500,
+    numPixels: 10000, // Limite pour éviter timeout
+    tileScale: 2,
+    geometries: true
+  });
+  
+  // Ajouter les métadonnées temporelles à chaque feature
+  var year = date.get('year');
+  var doy = date.getRelative('day', 'year').add(1);
+  var decimal_year = year.add(doy.divide(365.25));
+  
+  var pixel_features = pixel_vectors.map(function(feature) {
+    // Récupérer les coordonnées de la géométrie
+    var coords = feature.geometry().coordinates();
+    var longitude = ee.List(coords).get(0);
+    var latitude = ee.List(coords).get(1);
+    
+    // Décoder la classe glacier en texte
+    var class_code = feature.get('glacier_class_code');
+    var class_text = ee.Algorithms.If(ee.Number(class_code).eq(1), '0-25%',
+      ee.Algorithms.If(ee.Number(class_code).eq(2), '25-50%',
+        ee.Algorithms.If(ee.Number(class_code).eq(3), '50-75%',
+          ee.Algorithms.If(ee.Number(class_code).eq(4), '75-90%', '90-100%'))));
+    
+    // Décoder basic QA en texte
+    var basic_qa_val = feature.get('basic_qa');
+    var qa_text = ee.Algorithms.If(ee.Number(basic_qa_val).eq(0), 'Best',
+      ee.Algorithms.If(ee.Number(basic_qa_val).eq(1), 'Good',
+        ee.Algorithms.If(ee.Number(basic_qa_val).eq(2), 'OK',
+          ee.Algorithms.If(ee.Number(basic_qa_val).eq(3), 'Poor',
+            ee.Algorithms.If(ee.Number(basic_qa_val).eq(211), 'Night', 
+              ee.Algorithms.If(ee.Number(basic_qa_val).eq(239), 'Ocean', 'Unknown'))))));
+    
+    return feature.set({
+      'date': date.format('YYYY-MM-dd'),
+      'year': year,
+      'doy': doy,
+      'decimal_year': decimal_year,
+      'longitude': longitude,
+      'latitude': latitude,
+      'glacier_class': class_text,
+      'basic_qa_text': qa_text,
+      'system:time_start': date.millis()
+    }).setGeometry(null); // Enlever géométrie pour export CSV
+  });
+  
+  return pixel_features;
+}
+
+// ┌────────────────────────────────────────────────────────────────────────────────────────┐
 // │ SECTION 6 : CALCUL DES STATISTIQUES                                                   │
 // └────────────────────────────────────────────────────────────────────────────────────────┘
 
@@ -519,6 +628,14 @@ var dailyCollection = ee.ImageCollection('MODIS/061/MOD10A1')
 var dailyAlbedoHighSnow = dailyCollection.map(analyzeDailyAlbedoHighSnowCoverOptimized);
 
 print('Number of days analyzed:', dailyAlbedoHighSnow.size());
+
+// 11. Calculer les données pixel-level (échantillon pour test)
+print('Computing pixel-level data (sample for testing)...');
+// Limiter à quelques dates pour test initial - éviter timeout
+var sampleDates = dailyCollection.limit(10); // 10 premières dates pour test
+var pixelLevelData = sampleDates.map(analyzePixelLevelData).flatten();
+
+print('Number of pixel records (sample):', pixelLevelData.size());
 
 // ┌────────────────────────────────────────────────────────────────────────────────────────┐
 // │ SECTION 7 : INTERFACE INTERACTIVE OPTIMISÉE                                           │
@@ -1141,6 +1258,63 @@ Export.table.toDrive({
   fileNamePrefix: 'MOD10A1_albedo_high_snow_optimized_daily_2010_2024',
   fileFormat: 'CSV'
 });
+
+// 14. Export des données pixel-level (échantillon test)
+Export.table.toDrive({
+  collection: pixelLevelData,
+  description: 'Saskatchewan_Albedo_Pixel_Level_Sample_Test',
+  folder: 'GEE_exports',
+  fileNamePrefix: 'MOD10A1_albedo_pixel_level_sample_test',
+  fileFormat: 'CSV'
+});
+
+print('');
+print('╔════════════════════════════════════════════════════════════════════════════════════════╗');
+print('║                          📄 PIXEL-LEVEL CSV EXPORT COLUMNS 📄                         ║');
+print('╚════════════════════════════════════════════════════════════════════════════════════════╝');
+print('');
+print('🕐 TEMPORAL INFORMATION:');
+print('   • date (YYYY-MM-DD)');
+print('   • year, doy (day of year), decimal_year');
+print('   • system:time_start (timestamp)');
+print('');
+print('🌍 SPATIAL INFORMATION:');
+print('   • longitude, latitude (decimal degrees)');
+print('   • glacier_fraction_pct (0-100%)');
+print('   • glacier_class (0-25%, 25-50%, 50-75%, 75-90%, 90-100%)');
+print('');
+print('❄️ SNOW/ALBEDO DATA:');
+print('   • ndsi_snow_cover (0-100 index)');
+print('   • snow_albedo_raw (0-100 raw values)');
+print('   • snow_albedo_scaled (0-1 scaled values)');
+print('');
+print('🏷️ QUALITY ASSESSMENT:');
+print('   • basic_qa (0=Best, 1=Good, 2=OK, 3=Poor, 211=Night, 239=Ocean)');
+print('   • basic_qa_text (human readable)');
+print('   • algorithm_flags (0-255 raw 8-bit value)');
+print('   • passes_standard_qa (0/1 boolean)');
+print('');
+print('🚩 INDIVIDUAL QA FLAGS (0/1 boolean):');
+print('   • flag_inland_water (Bit 0)');
+print('   • flag_visible_fail (Bit 1) - CRITICAL');
+print('   • flag_ndsi_fail (Bit 2) - CRITICAL');
+print('   • flag_temp_height_fail (Bit 3) - IMPORTANT');
+print('   • flag_swir_anomaly (Bit 4) - OPTIONAL');
+print('   • flag_probably_cloudy (Bit 5) - CRITICAL v6.1');
+print('   • flag_probably_clear (Bit 6) - OPTIMAL v6.1');
+print('   • flag_high_solar_zenith (Bit 7) - IMPORTANT');
+print('');
+print('💡 USAGE NOTES:');
+print('   • Sample export limited to 10 dates for testing');
+print('   • Each row = one pixel observation');
+print('   • Filter by passes_standard_qa=1 for research-grade data');
+print('   • Use individual flags for custom quality filtering');
+print('   • glacier_class helps stratify analysis by ice coverage');
+print('');
+print('🔧 FOR FULL DATASET: Modify sampleDates = dailyCollection (remove .limit(10))');
+print('   WARNING: Full dataset ~5M rows - ensure adequate compute resources');
+print('');
+print('═══════════════════════════════════════════════════════════════════════════════════════');
 
 // Note: Export image défaillant supprimé (variables non définies corrigées)
 
