@@ -270,7 +270,6 @@ function calculateAnnualAlbedoHighSnowCoverOptimized(year) {
   var processed_collection = mod10a1_collection.map(function(img) {
     var snow_cover = img.select('NDSI_Snow_Cover');
     var snow_albedo = img.select('Snow_Albedo_Daily_Tile');
-    var quality = img.select('NDSI_Snow_Cover_Basic_QA');
     
     // Masques de qualité améliorés - utilise configuration QA standard pour exports
     var good_quality_mask = createStandardQualityMask(img);
@@ -370,7 +369,6 @@ function analyzeDailyAlbedoHighSnowCoverOptimized(img) {
   var date = img.date();
   var snow_cover = img.select('NDSI_Snow_Cover');
   var snow_albedo = img.select('Snow_Albedo_Daily_Tile');
-  var quality = img.select('NDSI_Snow_Cover_Basic_QA');
   
   // Masques avec fonction qualité améliorée - utilise configuration QA standard pour exports
   var good_quality_mask = createStandardQualityMask(img);
@@ -472,7 +470,6 @@ function analyzePixelLevelData(img) {
   var date = img.date();
   var snow_cover = img.select('NDSI_Snow_Cover');
   var snow_albedo = img.select('Snow_Albedo_Daily_Tile');
-  var quality = img.select('NDSI_Snow_Cover_Basic_QA');
   var algorithm_flags = img.select('NDSI_Snow_Cover_Algorithm_Flags_QA');
   
   // Créer une grille de coordonnées pour extraction pixel
@@ -488,7 +485,7 @@ function analyzePixelLevelData(img) {
     snow_albedo.rename('snow_albedo_raw'),
     snow_albedo.divide(100).rename('snow_albedo_scaled'),
     STATIC_GLACIER_FRACTION.multiply(100).rename('glacier_fraction_pct'),
-    quality.rename('basic_qa'),
+    img.select('NDSI_Snow_Cover_Basic_QA').rename('basic_qa'),
     algorithm_flags.rename('algorithm_flags')
   ]).updateMask(glacier_mask_sample);
   
@@ -508,7 +505,7 @@ function analyzePixelLevelData(img) {
   var passes_qa = createStandardQualityMask(img).rename('passes_standard_qa');
   
   // Déterminer la classe de fraction glacier
-  var glacier_class = ee.Image(0)
+  var glacier_class_code = ee.Image(0)
     .where(STATIC_GLACIER_FRACTION.gte(0).and(STATIC_GLACIER_FRACTION.lt(0.25)), 1)  // 0-25%
     .where(STATIC_GLACIER_FRACTION.gte(0.25).and(STATIC_GLACIER_FRACTION.lt(0.50)), 2) // 25-50%
     .where(STATIC_GLACIER_FRACTION.gte(0.50).and(STATIC_GLACIER_FRACTION.lt(0.75)), 3) // 50-75%
@@ -1327,7 +1324,6 @@ function compareWithUnfilteredAlbedoSafe(img) {
   var date = img.date();
   var snow_cover = img.select('NDSI_Snow_Cover');
   var snow_albedo = img.select('Snow_Albedo_Daily_Tile').divide(100);
-  var quality = img.select('NDSI_Snow_Cover_Basic_QA');
   
   // Limiter aux pixels glacier
   var glacier_pixels = STATIC_GLACIER_FRACTION.gt(0);
